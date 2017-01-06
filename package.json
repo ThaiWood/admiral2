@@ -16,7 +16,7 @@
     "moment": "^2.14.1",
     "react": "^15.3.0",
     "react-addons-css-transition-group": "^15.3.0",
-    "react-addons-pure-render-mixin": "^15.3.0",
+    "react-addons-pure-render-mixin": "^15.4.2",
     "react-dom": "^15.3.0",
     "stats-lite": "^2.0.3"
   }
