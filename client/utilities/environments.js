@@ -1,29 +1,44 @@
+export const enviornmentIcon = (env) => {
+  const info = env.split(/\|/);
+  let icon = "fa-fire";
+  if (info[0] === "ie") {
+    icon = "fa-internet-explorer";
+  }
+  if (info[0] === "chrome") {
+    icon = "fa-chrome";
+  }
+  if (info[0] === "safari") {
+    icon = "fa-safari";
+  }
+  if (info[0] === "iOS") {
+    icon = "fa-apple";
+  }
+  if (info[0] === "phantomjs") {
+    icon = "fa-space-shuttle";
+  }
+  return icon;
+}
+
+export const enviornmentVersion = (env) => {
+  const info = env.split(/\|/);
+  return info.length > 1 ? info[1] : "";
+}
+
+export const enviornmentWidth = (env) => {
+  const info = env.split(/\|/);
+  return info.length > 2 ? info[2] : "";
+}
+
 export const buildColumns = (envs) => {
   const environments = envs.sort();
 
   const colWidth = 60.0 / environments.length;
   const columns = [];
   for (env of environments) {
-    const info = env.split(/\|/);
-    let icon = "fa-fire";
-    if (info[0] === "ie") {
-      icon = "fa-internet-explorer";
-    }
-    if (info[0] === "chrome") {
-      icon = "fa-chrome";
-    }
-    if (info[0] === "safari") {
-      icon = "fa-safari";
-    }
-    if (info[0] === "iOS") {
-      icon = "fa-apple";
-    }
-    if (info[0] === "phantomjs") {
-      icon = "fa-space-shuttle";
-    }
+    let icon = enviornmentIcon(env);
 
-    const version = info.length > 1 ? info[1] : "";
-    const width = info.length > 2 ? info[2] : "";
+    const version = enviornmentVersion(env);
+    const width = enviornmentWidth(env);
 
     let name = version;
     if (width && width.length > 0) {
@@ -33,6 +48,7 @@ export const buildColumns = (envs) => {
       name += `${width}`;
     }
 
+    const info = env.split(/\|/);
     columns.push({
       icon,
       version,

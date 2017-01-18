@@ -60,7 +60,6 @@ export default class ComponentGraph extends React.Component {
   }
 
   componentWillReceiveProps(props) {
-    console.log(props.components);
     if (props.components) {
       for (let k in props.components) {
         this.state.nodeByName[k].failed = props.components[k].failed;
@@ -87,6 +86,10 @@ export default class ComponentGraph extends React.Component {
       .force("y", d3.forceY(this.props.height / 2));
 
     this.force.on('tick', () => this.setState({nodes: this.state.nodes, links: this.state.links}));
+  }
+
+  componentWillUnmount() {
+    this.force.stop();
   }
 
   render() {

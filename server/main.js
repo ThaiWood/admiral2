@@ -9,91 +9,45 @@ import { ProjectPhases } from "../imports/api/project-phases";
 import { TestRun } from "../imports/api/test-run";
 import { TestResult } from "../imports/api/test-result";
 
+import reportGenerator from "../imports/reports";
+
+import setBuilder from '../imports/utilities/mongo-set-builder';
+
+import updateWorstTests, { updateScore } from "./analytics/worst-tests";
+import updateEnvironmentsByPhase from "./analytics/environments-by-phase";
+
+import moment from 'moment';
 import _ from 'lodash';
 
-var stats = require("stats-lite");
-
-const _createScore = (result) => {
-  let score = 0;
-  let envCount = 0;
-  for (var k in result.environments) {
-    score += result.environments[k].status === 'fail' ? 3 : 0;
-    score += result.environments[k].status === 'pass' ? result.environments[k].retryCount * 0.2 : 0;
-    envCount++;
+const _updateReports = (pods, results, runs, reports) => {
+  for (const k in pods) {
+    let reportGen = reportGenerator(pods[k].data.type, pods[k].data.params);
+    if (reportGen) {
+      let report = reportGen(results, runs)
+      reports[k] = report;
+    }
   }
-  result.score = score;
-  result.normalizedScore = envCount > 0 ? parseFloat(score) / parseFloat(envCount) : 0;
-};
-
-const _updateScore = (id) => {
-  const result = TestResult.findOne({_id: id});
-  result.environments = result.environments || {};
-  _createScore(result);
-  TestResult.update(result._id, {"$set": {
-    score: result.score,
-    normalizedScore: result.normalizedScore
-  }});
-  return result;
 }
 
-const _updateAnalytics = (project) => {
-  const results = TestResult.find({project: project._id}).fetch();
-  const scores = [];
+const _updateAnalytics = (project, phase, run) => {
+  updateWorstTests(project);
+  updateEnvironmentsByPhase(project);
 
-  const scoreSets = {};
-  for (let result of results) {
-    _createScore(result);
-    TestResult.update(result._id, {"$set": {
-      score: result.score,
-      normalizedScore: result.normalizedScore
-    }});
-    scores.push(result.score);
-    if (scoreSets[result.test] === undefined) {
-      scoreSets[result.test] = {
-        test: result.test,
-        scores: [],
-        stdevs: []
-      };
-    }
-    scoreSets[result.test].scores.push(result.score);
+  if (phase && phase.pods) {
+    const results = TestResult.find({phase: phase._id}).fetch();
+    const runs = TestRun.find({phase: phase._id}).fetch();
+    phase.reports = phase.reports || {};
+    _updateReports(phase.pods, results, runs, phase.reports);
+    ProjectPhases.update(phase._id, {"$set": {reports: phase.reports}});
   }
 
-  const mean = stats.mean(scores);
-  const stddev = stats.stdev(scores);
-  for (let result of results) {
-    scoreSets[result.test].stdevs.push((result.score - mean) / stddev);
+  if (run && run.pods) {
+    const results = TestResult.find({run: run._id}).fetch();
+    const runs = TestRun.find({phase: phase._id}).fetch();
+    run.reports = run.reports || {};
+    _updateReports(run.pods, results, runs, run.reports);
+    TestRun.update(run._id, {"$set": {reports: run.reports}});
   }
-
-  let worstTests = [];
-
-  for (let k in scoreSets) {
-    scoreSets[k].overall = {
-      mean: stats.mean(scoreSets[k].scores),
-      stddev: stats.stdev(scoreSets[k].scores),
-    };
-    if (scoreSets[k].overall.stddev > 1) {
-      worstTests.push(scoreSets[k]);
-    }
-  }
-
-  worstTests = worstTests.sort((a, b) => {
-    if (a.overall.stddev < b.overall.stddev) {
-      return -1;
-    } else if (a.overall.stddev > b.overall.stddev) {
-      return 1;
-    } else {
-      return 0;
-    }
-  }).slice(worstTests.length < 5 ? 0 : worstTests.length - 5);
-
-  project.testScores = scoreSets;
-  project.worstTests = worstTests;
-  Projects.update(project._id, {"$set":
-    {
-      testScores: project.testScores,
-      worstTests: project.worstTests
-    }
-  });
 }
 
 const _jsonResponse = (res, data) => {
@@ -104,31 +58,13 @@ const _jsonResponse = (res, data) => {
   res.end();
 }
 
-const _setBuilder = (input, output, parent) => {
-  for (var k in input) {
-    if (_.isObject(input[k])) {
-      _setBuilder(input[k], output, `${parent}${k}.`);
-    } else {
-      output[`${parent ? parent : ''}${k}`] = input[k];
-    }
-  }
-}
-
 const _findPhase = (prName, phName, res) => {
-  const project = Projects.findOne({name: prName});
-  if (!project) {
-    _jsonResponse(res, {error: "Bad project name"});
+  try {
+    return ProjectPhases.findPhase(prName, phName);
+  } catch(e) {
+    _jsonResponse(res, {error: e.toString()});
     return null;
   }
-  const phase = ProjectPhases.findOne({project: project._id, name: phName});
-  if (!phase) {
-    _jsonResponse(res, {error: "Bad phase name"});
-    return null;
-  }
-  return {
-    project,
-    phase
-  };
 }
 
 Meteor.startup(() => {
@@ -156,195 +92,198 @@ Meteor.startup(() => {
   // Gets project info
   Router.route('/api/project/:project', {where: 'server'})
     .post(function () {
-      const found = Projects.findOne({name: this.params.project});
-      if (found) {
-        _jsonResponse(this.response, found);
-      } else {
-        const data = this.request.body || {};
-        data.created = new Date();
-        data.updated = new Date();
-        data.name = this.params.project;
-        const project = Projects.insert(data);
-        _jsonResponse(this.response, {_id: project});
-      }
+      _jsonResponse(this.response, Projects.findOrCreate(
+        this.params.project,
+        this.request.body || {}
+      ));
     })
     .get(function () {
-      const found = Projects.findOne({name: this.params.project});
+      const found = Projects.findByName(this.params.project);
       _jsonResponse(this.response, found ? found : null);
     });
 
   // Gets project info
   Router.route('/api/project/:project/analytics', {where: 'server'})
     .post(function () {
-      let project = Projects.findOne({name: this.params.project});
+      let project = Projects.findByName(this.params.project);
       _updateAnalytics(project);
-      project = Projects.findOne({name: this.params.project});
+      project = Projects.findByName(this.params.project);
       _jsonResponse(this.response, project);
     });
 
   // Gets the phase info
   Router.route('/api/project/:project/:phase', {where: 'server'})
-    .get(function () {
-      const project = Projects.findOne({name: this.params.project});
-      if (!project) {
-        _jsonResponse(this.response, {error: "Bad project name"});
-        return;
+    .put(function() {
+      try {
+        const phase = ProjectPhases.findPhase(this.params.project, this.params.phase);
+        _jsonResponse(this.response, ProjectPhases.updateById(
+          phase.phase._id, this.request.body || {})
+        );
+      } catch(e) {
+        _jsonResponse(this.response, {error: e});
       }
-      const phase = ProjectPhases.findOne({project: project.id, name: this.params.phase});
-      _jsonResponse(this.response, phase ? phase : null);
+    })
+    .get(function () {
+      try {
+        const phase = ProjectPhases.findPhase(this.params.project, this.params.phase);
+        _jsonResponse(this.response, phase ? phase.phase : null);
+      } catch(e) {
+        _jsonResponse(this.response, {error: e});
+      }
     })
     .post(function () {
-      const project = Projects.findOne({name: this.params.project});
+      const project = Projects.findByName(this.params.project);
       if (!project) {
         _jsonResponse(this.response, {error: "Bad project name"});
         return;
       }
 
-      const phase = ProjectPhases.findOne({project: project._id, name: this.params.phase});
-      if (phase) {
-        _jsonResponse(this.response, phase);
-      } else {
-        const newPhase = ProjectPhases.insert({
-          created: new Date(),
-          updated: new Date(),
-          project: project._id,
-          project_name: this.params.project,
-          name: this.params.phase
-        })
-        _jsonResponse(this.response, {_id: newPhase});
-      }
+      _jsonResponse(this.response, ProjectPhases.findOrCreate(
+        project._id, this.params.phase, this.request.body || {})
+      );
+    });
+
+  // Gets project info
+  Router.route('/api/project/:project/:phase/analytics', {where: 'server'})
+    .post(function () {
+      _updateAnalytics(
+        Projects.findByName(this.params.project),
+        _findPhase(this.params.project, this.params.phase, this.response).phase
+      );
+      _jsonResponse(this.response,
+        _findPhase(this.params.project, this.params.phase, this.response).phase
+      );
     });
 
   // Adds a test run
   Router.route('/api/project/:project/:phase/run', {where: 'server'})
     .post(function () {
-      const info = _findPhase(this.params.project, this.params.phase, this.response);
-      if (info) {
-        let data = this.request.body;
-        data.created = new Date();
-        data.updated = new Date();
-        data.status = "running";
-        data.project = Projects.findOne({name: this.params.project})._id;
-        data.project_name = this.params.project;
-        data.phase = info.phase._id;
-        data.phase_name = this.params.phase;
-        data.start = new Date();
-        data.stepTimes = {};
-        data.metric = data.metric || {};
-        const trId = TestRun.insert(data);
-        _jsonResponse(this.response, {_id: trId});
+      try {
+        _jsonResponse(this.response, {
+          _id: TestRun.start(this.params.project, this.params.phase, this.request.body || {})
+        });
+      } catch(e) {
+        console.log(e);
+        _jsonResponse(this.response, {error: e});
       }
     });
 
   // Updates a test run
   Router.route('/api/project/:project/:phase/run/:run', {where: 'server'})
     .put(function () {
-      const run = TestRun.findOne({_id: this.params.run});
-      if (run) {
-        const setObj = {}
-        setObj.updated = new Date();
-        _setBuilder(this.request.body, setObj, '');
-        TestRun.update(run._id, {"$set": setObj});
-        _jsonResponse(this.response, TestRun.findOne({_id: this.params.run}));
-      } else {
-        _jsonResponse(this.response, {error: "Test run not found"});
+      try {
+        _jsonResponse(this.response,
+          TestRun.updateById(this.params.run, this.request.body || {})
+        );
+      } catch(e) {
+        console.log(e);
+        _jsonResponse(this.response, {error: e});
       }
     });
 
   // Finishes the run
   Router.route('/api/project/:project/:phase/run/:run/finish', {where: 'server'})
     .post(function () {
-      const run = TestRun.findOne({_id: this.params.run});
-      const setObj = {};
-      setObj.updated = new Date();
-      setObj.status = "finished";
-      if (run) {
-        TestRun.update(run._id, {"$set": setObj});
-        _updateAnalytics(Projects.findOne(run.project));
+      try {
+        const run = TestRun.updateById(this.params.run, _.merge(this.request.body, {
+          status: "finished"
+        }));
+        _updateAnalytics(
+          Projects.findByName(this.params.project),
+          _findPhase(this.params.project, this.params.phase, this.response).phase
+        );
+        _jsonResponse(this.response, run);
+      } catch(e) {
+        console.log(e);
+        _jsonResponse(this.response, {error: e});
+      }
+    });
+
+  // Updates analytics on the run
+  Router.route('/api/project/:project/:phase/run/:run/analytics', {where: 'server'})
+    .post(function () {
+      try {
+        _updateAnalytics(
+          Projects.findByName(this.params.project),
+          _findPhase(this.params.project, this.params.phase, this.response).phase,
+          TestRun.findOne({_id: this.params.run})
+        );
         _jsonResponse(this.response, TestRun.findOne({_id: this.params.run}));
-      } else {
-        _jsonResponse(this.response, {error: "Test run not found"});
+      } catch(e) {
+        console.log(e);
+        _jsonResponse(this.response, {error: e});
       }
     });
 
   // Sets the run step
   Router.route('/api/project/:project/:phase/run/:run/step', {where: 'server'})
     .post(function () {
-      const run = TestRun.findOne({_id: this.params.run});
-      const setObj = {};
-      setObj.updated = new Date();
-      setObj.step = this.params.query.step;
-      setObj[`stepTimes.${this.params.query.step}`] = new Date();
-      if (run) {
-        TestRun.update(run._id, {"$set": setObj});
-        _jsonResponse(this.response, TestRun.findOne({_id: this.params.run}));
-      } else {
-        _jsonResponse(this.response, {error: "Test run not found"});
+      try {
+        let stepDate = new Date();
+        if (this.request.body && this.request.body.updated) {
+          try {
+            stepDate = new Date(Date.parse(this.request.body.updated));
+          } catch(e) {
+            stepDate = new Date();
+          }
+        }
+        let setObj = this.request.body || {};
+        setObj.step = this.params.query.step;
+        setObj.stepTimes = {};
+        setObj.stepTimes[this.params.query.step] = stepDate;
+
+        setObj.stepTimesElapsed = {};
+        const project = Projects.findByName(this.params.project);
+        const run = TestRun.findOne({_id: this.params.run});
+        let lastTime = new Date(Date.parse(run.start));
+        const times = {};
+        for (var i in project.steps) {
+          if (project.steps[i].id === this.params.query.step) {
+            setObj.stepTimesElapsed[this.params.query.step] = stepDate - lastTime;
+          }
+          let currentTime = run.stepTimes[project.steps[i].id];
+          if (currentTime) {
+            lastTime = currentTime;
+          }
+        }
+
+        _jsonResponse(this.response,
+          TestRun.updateById(this.params.run, setObj)
+        );
+      } catch(e) {
+        console.log(e);
+        console.log(e.stack);
+        _jsonResponse(this.response, {error: e});
       }
     });
 
   // Sets a metric value
   Router.route('/api/project/:project/:phase/run/:run/metric', {where: 'server'})
     .post(function () {
-      const run = TestRun.findOne({_id: this.params.run});
-      if (run) {
-        const setObj = {};
-        setObj.updated = new Date();
-        setObj[`metric.${this.params.query.metric}`] = this.params.query.value;
-        TestRun.update(run._id, {"$set": setObj});
-        _jsonResponse(this.response, TestRun.findOne({_id: this.params.run}));
-      } else {
-        _jsonResponse(this.response, {error: "Test run not found"});
+      try {
+        let setObj = this.request.body || {};
+        setObj.metric = {};
+        setObj.metric[this.params.query.metric] = this.params.query.value;
+        _jsonResponse(this.response,
+          TestRun.updateById(this.params.run, setObj)
+        );
+      } catch(e) {
+        console.log(e);
+        console.log(e.stack);
+        _jsonResponse(this.response, {error: e});
       }
     });
 
   Router.route('/api/result/:run', {where: 'server'})
     .post(function () {
-      if (!this.request.body || !this.request.body.test) {
-        _jsonResponse(this.response, {error: "No test specified"});
-        return;
-      }
-
-      const testRun = TestRun.findOne({_id: this.params.run});
-      if (!testRun) {
-        _jsonResponse(this.response, {error: "Invalid test run"});
-        return;
-      }
-
-      const result = TestResult.findOne({
-        run: testRun._id,
-        test: this.request.body.test
-      });
-      if (result) {
-        let data = this.request.body;
-        data.updated = new Date();
-        const setObj = {};
-        _setBuilder(data, setObj, '');
-
-        TestResult.update(result._id, {"$set": setObj});
-
-        _updateScore(result._id);
-
-        _jsonResponse(this.response, TestResult.findOne({_id: result._id}));
-      } else {
-        let data = this.request.body;
-        data.created = new Date();
-        data.updated = new Date();
-        data.run = testRun._id;
-        data.run_start = testRun.start;
-        data.run_name = testRun.name;
-        data.project = testRun.project;
-        data.project_name = testRun.project_name;
-        data.phase = testRun.phase;
-        data.phase_name = testRun.phase_name;
-
-        const newId = TestResult.insert(data);
-
-        this.request.body._id = newId;
-
-        data = _updateScore(newId);
-
-        _jsonResponse(this.response, data);
+      try {
+        _jsonResponse(this.response,
+          TestResult.createOrUpdate(this.params.run, this.request.body || {}, (data) => updateScore(data._id))
+        );
+      } catch(e) {
+        console.log(e);
+        console.log(e.stack);
+        _jsonResponse(this.response, {error: e});
       }
     });
 

@@ -16,24 +16,24 @@ const ResultTable = (props) => {
   const headerElements = props.headerElements.map((elem, index) => React.cloneElement(elem, {key: `header-${index}`}));
 
   return (
-    <table width="100%" className="results-table">
+    <table width="100%" className="results-table table table-striped">
       <thead>
         <tr>
           {headerElements.map((elem, index) => (
-            <td key={`spacer-${index}`} />
+            <th key={`spacer-${index}`} />
           ))}
           {sections.map((sect, index) => (
-            <td key={`section-${index}`} colSpan={sect.cols} style={{textAlign: 'center'}} className="browser">
+            <th key={`section-${index}`} colSpan={sect.cols} style={{textAlign: 'center'}} className="browser">
               <i className={`fa ${sect.icon}`} />
-            </td>
+            </th>
           ))}
         </tr>
         <tr>
           {headerElements}
           {columns.map((col, index) => (
-            <td width={`${colWidth}%`} style={{textAlign: 'center'}} key={`title-${index}`}>
+            <th width={`${colWidth}%`} style={{textAlign: 'center'}} key={`title-${index}`}>
               {col.name}
-            </td>
+            </th>
           ))}
         </tr>
       </thead>
@@ -42,7 +42,7 @@ const ResultTable = (props) => {
           <tr key={props.indexGenerator(result)}>
             {props.rowElements(result).map((elem, sindex) => React.cloneElement(elem, {key: `extra-columns-${sindex}-${index}`}))}
             {columns.map((col, cindex) => (
-              <ResultCell result={result.environments[col.key]} key={`${index}-${cindex}`} />
+              <ResultCell environment={col.key} resultId={result._id} result={result.environments[col.key]} key={`${index}-${cindex}`} />
             ))}
           </tr>
         ))}
@@ -50,7 +50,6 @@ const ResultTable = (props) => {
     </table>
   );
 }
-
 
 ResultTable.defaultProps = {
   browserColumnWidth: 15,

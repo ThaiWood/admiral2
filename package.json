@@ -11,13 +11,21 @@
   "license": "MIT",
   "dependencies": {
     "d3": "^4.2.2",
+    "human-time": "0.0.1",
     "lodash": "^4.15.0",
     "meteor-node-stubs": "~0.2.0",
     "moment": "^2.14.1",
     "react": "^15.3.0",
     "react-addons-css-transition-group": "^15.3.0",
     "react-addons-pure-render-mixin": "^15.3.0",
+    "react-bootstrap": "^0.30.5",
     "react-dom": "^15.3.0",
-    "stats-lite": "^2.0.3"
+    "stats-lite": "^2.0.3",
+    "victory": "^0.13.0",
+    "victory-composed": "0.0.1"
+  },
+  "devDependencies": {
+    "enzyme": "^2.4.1",
+    "react-addons-test-utils": "^15.3.2"
   }
 }

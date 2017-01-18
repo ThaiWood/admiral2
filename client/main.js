@@ -10,6 +10,7 @@ import { PhaseListContainer } from './pages/phase-list';
 import { TestRunListContainer } from './pages/test-run-list';
 import { RunReportContainer } from './pages/run-report';
 import { ResultDetailContainer } from './pages/result-detail';
+import { IndividualResultDetailContainer } from './pages/individual-result-detail';
 
 import ComponentGraph from './components/component-graph';
 
@@ -117,6 +118,12 @@ Meteor.startup(() => {
   Router.route('/run/:run/:result', {
     action: function () {
       _render(<ResultDetailContainer run={this.params.run} result={this.params.result} />);
+    }
+  });
+
+  Router.route('/result/:id/:environment', {
+    action: function () {
+      _render(<IndividualResultDetailContainer environment={this.params.environment} resultId={this.params.id} />);
     }
   });
 });

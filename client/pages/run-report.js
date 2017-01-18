@@ -14,6 +14,8 @@ import { TestRun } from '../../imports/api/test-run';
 import { TestResult } from '../../imports/api/test-result';
 import { buildColumns } from '../utilities/environments';
 
+import { ButtonToolbar, ButtonGroup, Button } from 'react-bootstrap';
+
 const _time = (val) => {
   if (val < 1000) {
     return `${val}ms`;
@@ -51,6 +53,14 @@ const _failed = (test) => {
 }
 
 export class RunReport extends React.Component {
+  constructor(props) {
+    super(props);
+
+    this.state = {
+      filters: {}
+    };
+  }
+
   _steps() {
     if (!this.props.project || !this.props.project.steps) {
       return null;
@@ -70,19 +80,25 @@ export class RunReport extends React.Component {
       }
     }
     return (
-      <div>
-        {
-          this.props.project.steps.map((step, index) => {
-            return (
-              <span key={index} className="process-step">
-                <i className={`fa fa-${index <= done ? 'check-circle-o done' : 'circle-thin'}`} />
-                &nbsp;{step.name}&nbsp;
-                {times[index] ? <span className="time">{`(${_time(times[index])})`}&nbsp;</span> : null}
-              </span>
-            );
-          })
-        }
-      </div>
+      <table className="table">
+        <tbody>
+          {
+            this.props.project.steps.map((step, index) => {
+              return (
+                <tr key={index} className="process-step">
+                  <td>
+                    <i className={`fa fa-${index <= done ? 'check-circle-o done' : 'circle-thin'}`} />
+                      &nbsp;{step.name}&nbsp;
+                  </td>
+                  <td>
+                    {times[index] ? <span className="time">{_time(times[index])}&nbsp;</span> : null}
+                  </td>
+                </tr>
+              );
+            })
+          }
+        </tbody>
+      </table>
     );
   }
 
@@ -155,6 +171,35 @@ export class RunReport extends React.Component {
     return _.keys(envs);
   }
 
+  _renderAttributes(attributes) {
+    let attrList = [];
+    for (var k in attributes) {
+      attrList.push({
+        name: k,
+        value: _.isArray(attributes[k]) ? attributes[k].join(', ') : attributes[k]
+      })
+    }
+    attrList = _.sortBy(attrList, 'name');
+    return (
+      <div>
+        {attrList.map((attr, index) => (
+          <span key={index}>{
+              index > 0 ? ", " : null
+            }<strong>{attr.name}</strong>: {attr.value}</span>
+        ))}
+      </div>
+    )
+  }
+
+  _selectFilter(fk, fv) {
+    if (fv) {
+      this.state.filters[fk] = fv;
+    } else {
+      delete this.state.filters[fk];
+    }
+    this.setState(this.state);
+  }
+
   render() {
     const {columns, colWidth, sections} = buildColumns(this.props.project.environments || this._findEnvironments());
 
@@ -178,43 +223,125 @@ export class RunReport extends React.Component {
       }
     });
 
+    const filters = {};
+    const _addFilter = (k, v) => {
+      if (filters[k] === undefined) {
+        filters[k] = {
+          name: k,
+          values: [],
+          valuesByName: {},
+          selected: this.state.filters[k] || null
+        }
+      }
+      if (filters[k].valuesByName[v] === undefined) {
+        filters[k].valuesByName[v] = true;
+        filters[k].values.push(v);
+      }
+    }
+    for (var sr of sortedResults) {
+      if (sr.attributes) {
+        for (var k in sr.attributes) {
+          if (_.isArray(sr.attributes[k])) {
+            for (var v of sr.attributes[k]) {
+              _addFilter(k, v);
+            }
+          } else {
+            _addFilter(k, sr.attributes[k]);
+          }
+        }
+      }
+    }
+    for (var fk in filters) {
+      filters[fk].values = filters[fk].values.sort();
+    }
+
+    let filter = () => true;
+    if (_.keys(this.state.filters).length > 0) {
+      filter = (result) => {
+        var isOk = true;
+        for (var k in this.state.filters) {
+          if (result.attributes === undefined || result.attributes[k] === undefined) {
+            isOk = false;
+          }
+          if (_.isArray(result.attributes[k])) {
+            if (_.includes(result.attributes[k], this.state.filters[k]) === false) {
+              isOk = false;
+            }
+          } else {
+            if (result.attributes[k] !== this.state.filters[k]) {
+              isOk = false;
+            }
+          }
+        }
+        return isOk;
+      };
+    }
+
     return (
       <div>
-        <h1><ProjectLink project={this.props.run.project_name}/> |&nbsp;
-          <PhaseLink project={this.props.run.project_name} phase={this.props.run.phase_name} /> |&nbsp;
-          {this.props.run.name}</h1>
-        {this.props.run ? <div>Started {moment(this.props.run.start).format('M/D/YY - h:mm a')}</div> : null}
-        {this._steps()}
-        {this.props.project && sortedResults.length > 0 ? this._componentGraph() : null}
-        <table width="100%" className="results-table">
+        <div className="row">
+          <div className="col-md-8">
+            <h1><ProjectLink project={this.props.run.project_name}/> |&nbsp;
+              <PhaseLink project={this.props.run.project_name} phase={this.props.run.phase_name} /> |&nbsp;
+              {this.props.run.name}</h1>
+            {this.props.run ? <div>Started {moment(this.props.run.start).format('M/D/YY - h:mm a')}</div> : null}
+            {this.props.project && sortedResults.length > 0 ? this._componentGraph() : null}
+          </div>
+          <div className="col-md-4">
+            <div className="well">
+              {this._steps()}
+            </div>
+          </div>
+        </div>
+        <div className="pull-right">
+          {_.keys(filters).map((fk, index) => (
+            <span key={`filter-${index}`} style={{display: 'inline-block', paddingRight: '1em'}}>
+              <strong>{fk}</strong><br/>
+              <ButtonGroup>
+                <Button
+                  bsSize="xsmall"
+                  onClick={() => this._selectFilter(fk, null)}
+                  bsStyle={filters[fk].selected === null ? "success" : "default"}>Any</Button>
+                {filters[fk].values.map((fv) => (
+                  <Button
+                    bsSize="xsmall"
+                    onClick={() => this._selectFilter(fk, fv)}
+                    bsStyle={filters[fk].selected === fv ? "success" : "default"} key={`filter-${index}-${fv}`}>{fv}</Button>
+                ))}
+              </ButtonGroup>
+            </span>
+          ))}
+        </div>
+        <table width="100%" className="results-table table table-striped">
           <thead>
             <tr>
-              <td width="40%" />
+              <th width="40%" />
               {sections.map((sect, index) => (
-                <td key={`section-${index}`} colSpan={sect.cols} style={{textAlign: 'center'}} className="browser">
+                <th key={`section-${index}`} colSpan={sect.cols} style={{textAlign: 'center'}} className="browser">
                   <i className={`fa ${sect.icon}`} />
-                </td>
+                </th>
               ))}
             </tr>
             <tr>
-              <td>
+              <th>
                 Test name
-              </td>
+              </th>
               {columns.map((col, index) => (
-                <td width={`${colWidth}%`} style={{textAlign: 'center'}} key={`title-${index}`}>
+                <th width={`${colWidth}%`} style={{textAlign: 'center'}} key={`title-${index}`}>
                   {col.name}
-                </td>
+                </th>
               ))}
             </tr>
           </thead>
           <ReactCSSTransitionGroup component="tbody" transitionName="example" transitionEnterTimeout={500} transitionLeaveTimeout={300}>
-            {sortedResults.map((result, index) => (
+            {_.filter(sortedResults, filter).map((result, index) => (
               <tr key={`${result.test}-${index}`}>
                 <td>
-                  <a href={`/run/${this.props.run._id}/${result._id}`}>{result.test}</a>
+                  <a href={`/run/${this.props.run._id}/${result._id}`}>{result.test}</a><br/>
+                  {this._renderAttributes(result.attributes)}
                 </td>
                 {columns.map((col, cindex) => (
-                  <ResultCell result={result.environments[col.key]} key={`${index}-${cindex}`} />
+                  <ResultCell environment={col.key} resultId={result._id} result={result.environments[col.key]} key={`${index}-${cindex}`} />
                 ))}
               </tr>
             ))}
