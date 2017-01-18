@@ -10,7 +10,7 @@
   "author": "jherrington@walmartlabs.com <Jack Herrington>",
   "license": "MIT",
   "dependencies": {
-    "d3": "^4.2.2",
+    "d3": "^4.4.2",
     "lodash": "^4.15.0",
     "meteor-node-stubs": "~0.2.0",
     "moment": "^2.14.1",
