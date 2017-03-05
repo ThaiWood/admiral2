@@ -20,7 +20,7 @@
     "react-addons-pure-render-mixin": "^15.3.0",
     "react-bootstrap": "^0.30.5",
     "react-dom": "^15.3.0",
-    "stats-lite": "^2.0.3",
+    "stats-lite": "^2.0.4",
     "victory": "^0.16.0",
     "victory-composed": "0.0.1"
   },
