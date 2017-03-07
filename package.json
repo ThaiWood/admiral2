@@ -18,7 +18,7 @@
     "react": "^15.3.0",
     "react-addons-css-transition-group": "^15.3.0",
     "react-addons-pure-render-mixin": "^15.3.0",
-    "react-bootstrap": "^0.30.5",
+    "react-bootstrap": "^0.30.8",
     "react-dom": "^15.3.0",
     "stats-lite": "^2.0.3",
     "victory": "^0.16.0",
