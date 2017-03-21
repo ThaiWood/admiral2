@@ -21,7 +21,7 @@
     "react-bootstrap": "^0.30.5",
     "react-dom": "^15.3.0",
     "stats-lite": "^2.0.3",
-    "victory": "^0.16.0",
+    "victory": "^0.18.3",
     "victory-composed": "0.0.1"
   },
   "devDependencies": {
