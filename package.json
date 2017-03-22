@@ -14,7 +14,7 @@
     "human-time": "0.0.1",
     "lodash": "^4.15.0",
     "meteor-node-stubs": "~0.2.0",
-    "moment": "^2.14.1",
+    "moment": "^2.18.1",
     "react": "^15.3.0",
     "react-addons-css-transition-group": "^15.3.0",
     "react-addons-pure-render-mixin": "^15.3.0",
