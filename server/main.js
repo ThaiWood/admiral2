@@ -19,6 +19,10 @@ import updateEnvironmentsByPhase from "./analytics/environments-by-phase";
 import moment from 'moment';
 import _ from 'lodash';
 
+import magellanListener from './listeners/magellan';
+
+magellanListener.initialize();
+
 const _updateReports = (pods, results, runs, reports) => {
   for (const k in pods) {
     let reportGen = reportGenerator(pods[k].data.type, pods[k].data.params);

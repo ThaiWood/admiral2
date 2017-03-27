@@ -62,7 +62,7 @@ export class RunReport extends React.Component {
   }
 
   _steps() {
-    if (!this.props.project || !this.props.project.steps) {
+    if (!this.props.project || !this.props.project.steps || this.props.project.steps.length === 0) {
       return null;
     }
 
@@ -80,25 +80,27 @@ export class RunReport extends React.Component {
       }
     }
     return (
-      <table className="table">
-        <tbody>
-          {
-            this.props.project.steps.map((step, index) => {
-              return (
-                <tr key={index} className="process-step">
-                  <td>
-                    <i className={`fa fa-${index <= done ? 'check-circle-o done' : 'circle-thin'}`} />
-                      &nbsp;{step.name}&nbsp;
-                  </td>
-                  <td>
-                    {times[index] ? <span className="time">{_time(times[index])}&nbsp;</span> : null}
-                  </td>
-                </tr>
-              );
-            })
-          }
-        </tbody>
-      </table>
+      <div className="well">
+        <table className="table">
+          <tbody>
+            {
+              this.props.project.steps.map((step, index) => {
+                return (
+                  <tr key={index} className="process-step">
+                    <td>
+                      <i className={`fa fa-${index <= done ? 'check-circle-o done' : 'circle-thin'}`} />
+                        &nbsp;{step.name}&nbsp;
+                    </td>
+                    <td>
+                      {times[index] ? <span className="time">{_time(times[index])}&nbsp;</span> : null}
+                    </td>
+                  </tr>
+                );
+              })
+            }
+          </tbody>
+        </table>
+      </div>
     );
   }
 
@@ -288,9 +290,7 @@ export class RunReport extends React.Component {
             {this.props.project && sortedResults.length > 0 ? this._componentGraph() : null}
           </div>
           <div className="col-md-4">
-            <div className="well">
-              {this._steps()}
-            </div>
+            {this._steps()}
           </div>
         </div>
         <div className="pull-right">

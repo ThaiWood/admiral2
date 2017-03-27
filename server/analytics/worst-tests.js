@@ -78,10 +78,11 @@ export default (project) => {
 
   project.testScores = scoreSets;
   project.worstTests = worstTests;
-  Projects.update(project._id, {"$set":
+  const update = {"$set":
     {
       testScores: project.testScores,
       worstTests: project.worstTests
     }
-  });
+  };
+  Projects.update(project._id, update);
 }

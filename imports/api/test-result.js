@@ -27,7 +27,7 @@ TestResult.createOrUpdate = (run, data, postProcess) => {
 
     TestResult.update(result._id, {"$set": setObj});
 
-    postProcess(result);
+    if (postProcess) postProcess(result);
 
     return TestResult.findOne({_id: result._id});
   } else {
@@ -44,7 +44,7 @@ TestResult.createOrUpdate = (run, data, postProcess) => {
 
     data._id = newId;
 
-    postProcess(data);
+    if (postProcess) postProcess(data);
 
     return data;
   }
