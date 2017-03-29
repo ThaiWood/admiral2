@@ -27,7 +27,6 @@ export class RecentTestList extends React.Component {
                   <PhaseLink project={run.project_name} phase={run.phase_name} />
                 </div>
                 <div className="run">
-                  {run.status === 'running' ? <img src="/spin.gif" style={{width: 15, height: 15}}></img> : null}
                   <a href={`/run/${run._id}`}>{run.name||run._id}</a>
                 </div>
               </td>

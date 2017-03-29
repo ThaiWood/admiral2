@@ -56,7 +56,6 @@ export class TestRunList extends React.Component {
                   {moment(run.created).format('M/D/YY - h:mm a')}
                 </td>
                 <td>
-                  {run.status === 'running' ? <img src="/spin.gif" style={{width: 15, height: 15}}></img> : null}
                   <a href={`/run/${run._id}`}>{run.name||run._id}</a>
                   {this._runPods(run)}
                 </td>
