@@ -77,7 +77,9 @@ const watchQueue = () => {
     const phase = ProjectPhases.findOrCreate(project._id, msg.phase, {});
     if (runIds[job] === undefined) {
       runIds[job] = TestRun.start(projectName, msg.phase, {
-        name: msg.displayName
+        name: msg.displayName,
+        buildURL: msg.buildURL,
+        shardBuildURL: msg.shardBuildURL
       });
     }
 
@@ -93,6 +95,9 @@ const watchQueue = () => {
           test: testRun.test.name,
           environments
         };
+        if (testRun.metadata && testRun.metadata.sauceURL) {
+          testResult.sauceURL = testRun.metadata.sauceURL;
+        }
         TestResult.createOrUpdate(runIds[job], testResult, (data) => updateScore(data._id));
 
         updateAnalytics(

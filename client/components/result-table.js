@@ -6,13 +6,22 @@ import ResultCell from './result-cell';
 
 import { buildColumns } from '../utilities/environments';
 
+import _ from 'lodash';
+
+const _findEnvironments = (results) => {
+  const envs = {};
+  for (let r of results) {
+    for (var k in r.environments) {
+      envs[k] = true;
+    }
+  }
+  return _.keys(envs);
+};
+
 const ResultTable = (props) => {
-  const {columns, colWidth, sections} = buildColumns(props.project.environments || [
-    "ie",
-    "chrome",
-    "safari",
-    "ios"
-  ]);
+  const {columns, colWidth, sections} = buildColumns(
+    props.project.environments || _findEnvironments(props.results)
+  );
   const headerElements = props.headerElements.map((elem, index) => React.cloneElement(elem, {key: `header-${index}`}));
 
   return (
@@ -42,7 +51,9 @@ const ResultTable = (props) => {
           <tr key={props.indexGenerator(result)}>
             {props.rowElements(result).map((elem, sindex) => React.cloneElement(elem, {key: `extra-columns-${sindex}-${index}`}))}
             {columns.map((col, cindex) => (
-              <ResultCell environment={col.key} resultId={result._id} result={result.environments[col.key]} key={`${index}-${cindex}`} />
+              result.environments[col.key] ?
+                <ResultCell environment={col.key} resultId={result._id} result={result.environments[col.key]} key={`${index}-${cindex}`} />
+                : null
             ))}
           </tr>
         ))}

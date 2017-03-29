@@ -56,26 +56,30 @@ export class IndividualResultDetail extends React.Component {
                 #38974
               </td>
             </tr>
-            <tr>
-              <td>
-                Remote URL
-              </td>
-              <td>
-                <a href="https://saucelabs.com/tests/fb213bd74ee4405fb285443f617593cc">
-                  https://saucelabs.com/tests/fb213bd74ee4405fb285443f617593cc
-                </a>
-              </td>
-            </tr>
-            <tr>
-              <td>
-                Build URL
-              </td>
-              <td>
-                <a href="http://jenkins.otto.walmartlabs.com:8080/job/Core/job/electrode_magellan_test_shard/14242/">
-                  http://jenkins.otto.walmartlabs.com:8080/job/Core/job/electrode_magellan_test_shard/14242/
-                </a>
-              </td>
-            </tr>
+            {this.props.result.sauceURL ? (
+              <tr>
+                <td>
+                  Remote URL
+                </td>
+                <td>
+                  <a href="https://saucelabs.com/tests/fb213bd74ee4405fb285443f617593cc">
+                    https://saucelabs.com/tests/fb213bd74ee4405fb285443f617593cc
+                  </a>
+                </td>
+              </tr>
+            ) : null}
+            {this.props.testRun.buildURL ? (
+              <tr>
+                <td>
+                  Build URL
+                </td>
+                <td>
+                  <a href={this.props.testRun.buildURL}>
+                    {this.props.testRun.buildURL}
+                  </a>
+                </td>
+              </tr>
+            ) : null}
             <tr>
               <td>
                 UA ID
@@ -95,15 +99,19 @@ export class IndividualResultDetail extends React.Component {
           </tbody>
         </table>
         <h2>Results</h2>
-        <p className="swarm-toollinks">
-          <a href="https://saucelabs.com/tests/fb213bd74ee4405fb285443f617593cc" target="_blank">
-            Open in new window
-          </a>
-        </p>
-        <iframe
-          src="https://saucelabs.com/tests/fb213bd74ee4405fb285443f617593cc" width="100%" height="1200px"
-          className="swarm-result-frame">
-        </iframe>
+        {this.props.result.sauceURL ? (
+          <p className="swarm-toollinks">
+            <a href={this.props.result.sauceURL} target="_blank">
+              Open in new window
+            </a>
+          </p>
+        ) : null}
+        {this.props.result.sauceURL ? (
+          <iframe
+            src={this.props.result.sauceURL} width="100%" height="1200px"
+            className="swarm-result-frame">
+          </iframe>
+        ) : null}
       </div>
     );
   }
@@ -112,13 +120,16 @@ export class IndividualResultDetail extends React.Component {
 export const IndividualResultDetailContainer = createContainer(({ resultId }) => {
   const resultObj = TestResult.findOne({_id: resultId});
   let project = null;
+  let testRun = {};
   if (resultObj) {
     project = Projects.findOne(resultObj.project);
+    testRun = TestRun.findOne(resultObj.run);
   }
   return {
     result: resultObj || {
       created: new Date()
     },
-    project: project
+    project: project,
+    testRun: testRun
   };
 }, IndividualResultDetail);
