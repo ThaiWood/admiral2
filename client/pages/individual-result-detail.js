@@ -34,6 +34,13 @@ export class IndividualResultDetail extends React.Component {
     );
   }
   render() {
+    let envResult = {};
+    if (this.props.result && this.props.environment) {
+      envResult = this.props.result.environments[this.props.environment];
+    }
+    if (!envResult) {
+      envResult = {};
+    }
     return (
       <div>
         {this.props.project && this.props.result ? this._resultTable() : null }
@@ -98,17 +105,17 @@ export class IndividualResultDetail extends React.Component {
             </tr>
           </tbody>
         </table>
-        <h2>Results</h2>
-        {this.props.result.sauceURL ? (
+        {envResult.sauceURL ? <h2>Results</h2> : null}
+        {envResult.sauceURL ? (
           <p className="swarm-toollinks">
-            <a href={this.props.result.sauceURL} target="_blank">
+            <a href={envResult.sauceURL} target="_blank">
               Open in new window
             </a>
           </p>
         ) : null}
-        {this.props.result.sauceURL ? (
+        {envResult.sauceURL ? (
           <iframe
-            src={this.props.result.sauceURL} width="100%" height="1200px"
+            src={envResult.sauceURL} width="100%" height="1200px"
             className="swarm-result-frame">
           </iframe>
         ) : null}
@@ -117,7 +124,7 @@ export class IndividualResultDetail extends React.Component {
   }
 }
 
-export const IndividualResultDetailContainer = createContainer(({ resultId }) => {
+export const IndividualResultDetailContainer = createContainer(({ resultId, environment }) => {
   const resultObj = TestResult.findOne({_id: resultId});
   let project = null;
   let testRun = {};
@@ -127,9 +134,11 @@ export const IndividualResultDetailContainer = createContainer(({ resultId }) =>
   }
   return {
     result: resultObj || {
+      environments: {},
       created: new Date()
     },
     project: project,
-    testRun: testRun
+    testRun: testRun,
+    environment
   };
 }, IndividualResultDetail);
