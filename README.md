@@ -28,7 +28,7 @@ To shut that down:
 % docker-compose down
 ```
 
-## Terminonology
+## Terminology
 
 |Term|Definition|
 |---|---|
