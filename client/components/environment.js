@@ -1,8 +1,8 @@
 import React from 'react';
-import { enviornmentIcon, enviornmentVersion, enviornmentWidth } from '../utilities/environments';
+import { browserIcon, browserVersion, enviornmentWidth } from '../utilities/environments';
 
 export default (props) => (
   <span>
-    <i className={`fa ${enviornmentIcon(props.environment)}`} /> {enviornmentVersion(props.environment)} {enviornmentWidth(props.environment)}
+    <i className={`fa ${browserIcon(props.environment)}`} /> {browserVersion(props.environment)} {enviornmentWidth(props.environment)}
   </span>
 );

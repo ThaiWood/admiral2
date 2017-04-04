@@ -18,7 +18,7 @@ export class RecentTestList extends React.Component {
         <tbody>
           {this.props.runs.map((run, index) => (
             <tr key={index} className="recent-run">
-              <td>
+              <td width="20%">
                 {moment(run.created).format('M/D/YY - h:mm a')}
               </td>
               <td>

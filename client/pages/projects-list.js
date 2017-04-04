@@ -9,7 +9,7 @@ export class ProjectsList extends React.Component {
     return (
       <div>
         <div className="row">
-          <div className="col-md-8">
+          <div className="col-md-6">
             <h1>Projects</h1>
             {this.props.projects.map((project, index) => (
               <div key={index}>
@@ -17,7 +17,7 @@ export class ProjectsList extends React.Component {
               </div>
             ))}
           </div>
-          <div className="col-md-4">
+          <div className="col-md-6">
             <h1>Recent</h1>
             <RecentTestListContainer />
           </div>

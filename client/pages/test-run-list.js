@@ -52,7 +52,7 @@ export class TestRunList extends React.Component {
           <tbody>
             {this.props.runs.map((run, index) => (
               <tr key={index}>
-                <td>
+                <td width="20%">
                   {moment(run.created).format('M/D/YY - h:mm a')}
                 </td>
                 <td>
@@ -164,7 +164,7 @@ pods.push(this._worstTests());
         {_.chunk(pods, 3).map((pg, pgIndex) => (
           <div className="row" key={`pgIndex-${pgIndex}`}>
             {pg.map((pod, podIndex) => (
-              <div className="col-md-4" key={`pgIndex-${pgIndex}-${podIndex}`}>
+              <div className="col-md-8" key={`pgIndex-${pgIndex}-${podIndex}`}>
                 {pod}
               </div>
             ))}

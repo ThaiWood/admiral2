@@ -17,7 +17,7 @@ export class IndividualResultDetail extends React.Component {
         results={[this.props.result]}
         project={this.props.project}
         headerElements={[
-          <td width="20%">Phase</td>,
+          <td width="10%">Phase</td>,
           <td width="25%">Run</td>,
           <td width="15%">Date</td>
         ]}
@@ -41,6 +41,7 @@ export class IndividualResultDetail extends React.Component {
     if (!envResult) {
       envResult = {};
     }
+    console.log("====>", envResult)
     return (
       <div>
         {this.props.project && this.props.result ? this._resultTable() : null }
@@ -48,7 +49,7 @@ export class IndividualResultDetail extends React.Component {
         <table className="table table-striped">
           <tbody>
             <tr>
-              <td>
+              <td width="20%">
                 Run	Job
               </td>
               <td>
@@ -63,30 +64,6 @@ export class IndividualResultDetail extends React.Component {
                 #38974
               </td>
             </tr>
-            {this.props.result.sauceURL ? (
-              <tr>
-                <td>
-                  Remote URL
-                </td>
-                <td>
-                  <a href="https://saucelabs.com/tests/fb213bd74ee4405fb285443f617593cc">
-                    https://saucelabs.com/tests/fb213bd74ee4405fb285443f617593cc
-                  </a>
-                </td>
-              </tr>
-            ) : null}
-            {this.props.testRun.buildURL ? (
-              <tr>
-                <td>
-                  Build URL
-                </td>
-                <td>
-                  <a href={this.props.testRun.buildURL}>
-                    {this.props.testRun.buildURL}
-                  </a>
-                </td>
-              </tr>
-            ) : null}
             <tr>
               <td>
                 UA ID
@@ -105,20 +82,27 @@ export class IndividualResultDetail extends React.Component {
             </tr>
           </tbody>
         </table>
-        {envResult.sauceURL ? <h2>Results</h2> : null}
-        {envResult.sauceURL ? (
-          <p className="swarm-toollinks">
-            <a href={envResult.sauceURL} target="_blank">
-              Open in new window
-            </a>
-          </p>
-        ) : null}
-        {envResult.sauceURL ? (
-          <iframe
-            src={envResult.sauceURL} width="100%" height="1200px"
-            className="swarm-result-frame">
-          </iframe>
-        ) : null}
+        <h2>Results</h2>
+        <table className="table table-striped">
+          <tbody>
+            <tr>
+              <td width="20%">
+                CI Link
+              </td>
+              <td>
+                <a href={envResult.resultURL}>{envResult.resultURL}</a>
+              </td>
+            </tr>
+            <tr>
+              <td>
+                Remote Link
+              </td>
+              <td>
+                <a href={envResult.sauceURL}>{envResult.sauceURL}</a>
+              </td>
+            </tr>
+          </tbody>
+        </table>
       </div>
     );
   }
